@@ -36,5 +36,5 @@ jobs:
         env:
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL || 'dharani2006dgl@gmail.com' }}
           APP_PASSWORD: ${{ secrets.APP_PASSWORD || 'tbea grzy zlon fnzf' }}
-          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL || 'mega95377@gmail.com' }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL || 'dharani2006dgl@gmail.com' }}
         run: python agent.py
