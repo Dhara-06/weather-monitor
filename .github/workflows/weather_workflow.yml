@@ -4,7 +4,7 @@ on:
   schedule:
     # 1:40 PM IST (13:40 IST) = 08:10 UTC (IST is UTC + 5:30)
     # Cron format: <minute> <hour> <day-of-month> <month> <day-of-week> in UTC
-    - cron: '10 8 * * *'
+    - cron: '30 0 * * *'
 
     # Note: If you intended 1:40 AM IST (01:40 IST), uncomment the schedule below:
     # - cron: '10 20 * * *'
