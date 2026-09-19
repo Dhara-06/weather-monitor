@@ -1,0 +1,40 @@
+name: Automated Brussels Weather Briefing
+
+on:
+  schedule:
+    # 1:40 PM IST (13:40 IST) = 08:10 UTC (IST is UTC + 5:30)
+    # Cron format: <minute> <hour> <day-of-month> <month> <day-of-week> in UTC
+    - cron: '10 8 * * *'
+
+    # Note: If you intended 1:40 AM IST (01:40 IST), uncomment the schedule below:
+    # - cron: '10 20 * * *'
+
+  # Allows manual execution on-demand from the GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  weather_briefing:
+    name: Fetch Weather & Dispatch Email
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute Weather Briefing Agent
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL || 'dharani2006dgl@gmail.com' }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD || 'tbea grzy zlon fnzf' }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL || 'mega95377@gmail.com' }}
+        run: python agent.py
