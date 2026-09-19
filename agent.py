@@ -19,7 +19,7 @@ from datetime import datetime
 # =========================================================
 SENDER_EMAIL = os.getenv("SENDER_EMAIL", "dharani2006dgl@gmail.com")
 APP_PASSWORD = os.getenv("APP_PASSWORD", "tbea grzy zlon fnzf")
-RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL", "mega95377@gmail.com")
+RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL", "dharani2006dgl@gmail.com")
 
 # =========================================================
 # WEATHER CONFIG
@@ -122,9 +122,9 @@ def get_weather_data():
 
 
 def build_email_body(weather):
-    """Build a clean, minimalist HTML email and plain-text fallback."""
+    """Build a colorful, interactive Bootstrap-styled HTML email and plain-text fallback."""
     code = weather.get("weather_code", 0)
-    condition = weather_code_to_description(code)
+    condition, emoji, grad_start, grad_end = get_weather_meta(code)
     temp = weather.get("temperature_2m", 0)
     apparent_temp = weather.get("apparent_temperature", 0)
     humidity = weather.get("relative_humidity_2m", 0)
@@ -132,20 +132,48 @@ def build_email_body(weather):
     wind_speed = weather.get("wind_speed_10m", 0)
     timestamp = datetime.now().strftime("%B %d, %Y • %I:%M %p")
 
+    # Thermal variance
+    temp_delta = round(apparent_temp - temp, 1)
+    delta_str = f"{temp_delta:+.1f}°C" if temp_delta != 0 else "0.0°C"
+
+    # Contextual insight
+    if precipitation > 0:
+        insight = f"Precipitation of {precipitation} mm recorded. Don't forget an umbrella if heading out!"
+        insight_bg = "#fff3cd"
+        insight_border = "#ffecb5"
+        insight_text = "#664d03"
+    elif temp >= 22:
+        insight = "Pleasantly warm weather today — great conditions for outdoor activities."
+        insight_bg = "#d1e7dd"
+        insight_border = "#badbcc"
+        insight_text = "#0f5132"
+    elif temp <= 7:
+        insight = "Cold temperatures reported. Remember to bundle up with a warm jacket."
+        insight_bg = "#cff4fc"
+        insight_border = "#9eeaf9"
+        insight_text = "#055160"
+    else:
+        insight = f"Stable {condition.lower()} conditions in {LOCATION_NAME}. Moderate atmospheric comfort."
+        insight_bg = "#cfe2ff"
+        insight_border = "#b6d4fe"
+        insight_text = "#084298"
+
     # Clean plain-text fallback
     plain_body = f"""\
-{LOCATION_NAME}
-{temp}°C — {condition}
-Feels like {apparent_temp}°C
+{LOCATION_NAME} Weather Update
+{temp}°C — {condition} (Feels like {apparent_temp}°C)
 
-Humidity:       {humidity}%
-Wind Speed:     {wind_speed} km/h
-Precipitation:  {precipitation} mm
+* Humidity:      {humidity}%
+* Wind Speed:    {wind_speed} km/h
+* Precipitation: {precipitation} mm
+* Real Feel:     {apparent_temp}°C ({delta_str})
 
-Updated: {timestamp}
+Insight: {insight}
+
+Updated: {timestamp} • Open-Meteo
 """
 
-    # Minimalist, elegant HTML email UI
+    # Colorful, Interactive Bootstrap 5 Email UI
     html_body = f"""\
 <!DOCTYPE html>
 <html lang="en">
@@ -153,100 +181,183 @@ Updated: {timestamp}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{LOCATION_NAME} Weather</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body style="margin: 0; padding: 0; background-color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #18181b;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #fafafa; padding: 48px 16px;">
+<body style="margin: 0; padding: 0; background-color: #f0f2f5; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #212529;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f0f2f5; padding: 36px 12px;">
     <tr>
       <td align="center">
-        <!-- Minimal Card Container -->
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 440px; background-color: #ffffff; border: 1px solid #eaeaea; border-radius: 12px; padding: 36px 32px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);">
+        
+        <!-- Bootstrap Card Container -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background-color: #ffffff; border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(13, 110, 253, 0.08);">
           
-          <!-- Location & Date -->
+          <!-- Card Header (Bootstrap Primary with Gradient) -->
           <tr>
-            <td style="padding-bottom: 24px; text-align: left;">
-              <div style="font-size: 13px; font-weight: 500; color: #71717a; letter-spacing: 0.3px;">
-                {LOCATION_NAME}
-              </div>
-            </td>
-          </tr>
-
-          <!-- Large Minimal Temperature -->
-          <tr>
-            <td style="padding-bottom: 8px; text-align: left;">
-              <div style="font-size: 72px; font-weight: 300; line-height: 1; letter-spacing: -3px; color: #18181b;">
-                {round(temp)}<span style="font-size: 40px; font-weight: 200; vertical-align: top; margin-left: 2px;">°</span>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Condition & Feels Like -->
-          <tr>
-            <td style="padding-bottom: 28px; text-align: left;">
-              <div style="font-size: 15px; font-weight: 400; color: #52525b;">
-                {condition} &bull; Feels like {round(apparent_temp)}°
-              </div>
-            </td>
-          </tr>
-
-          <!-- Hairline Divider -->
-          <tr>
-            <td style="border-top: 1px solid #f4f4f5; padding-bottom: 24px;"></td>
-          </tr>
-
-          <!-- Metrics Strip -->
-          <tr>
-            <td>
+            <td style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); padding: 20px 26px; color: #ffffff;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
-                  <!-- Humidity -->
-                  <td width="33%" style="text-align: left; vertical-align: top;">
-                    <div style="font-size: 10px; font-weight: 600; color: #a1a1aa; letter-spacing: 0.8px; text-transform: uppercase;">
-                      Humidity
+                  <td align="left">
+                    <div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255, 255, 255, 0.85); margin-bottom: 4px;">
+                      Weather Monitor
                     </div>
-                    <div style="font-size: 16px; font-weight: 600; color: #18181b; margin-top: 4px;">
-                      {humidity}%
-                    </div>
-                  </td>
-
-                  <!-- Wind -->
-                  <td width="34%" style="text-align: left; vertical-align: top;">
-                    <div style="font-size: 10px; font-weight: 600; color: #a1a1aa; letter-spacing: 0.8px; text-transform: uppercase;">
-                      Wind
-                    </div>
-                    <div style="font-size: 16px; font-weight: 600; color: #18181b; margin-top: 4px;">
-                      {wind_speed} <span style="font-size: 12px; font-weight: 400; color: #71717a;">km/h</span>
+                    <div style="font-size: 20px; font-weight: 700; color: #ffffff;">
+                      📍 {LOCATION_NAME}
                     </div>
                   </td>
-
-                  <!-- Precipitation -->
-                  <td width="33%" style="text-align: left; vertical-align: top;">
-                    <div style="font-size: 10px; font-weight: 600; color: #a1a1aa; letter-spacing: 0.8px; text-transform: uppercase;">
-                      Precipitation
-                    </div>
-                    <div style="font-size: 16px; font-weight: 600; color: #18181b; margin-top: 4px;">
-                      {precipitation} <span style="font-size: 12px; font-weight: 400; color: #71717a;">mm</span>
-                    </div>
+                  <td align="right" valign="middle">
+                    <span style="background-color: rgba(255, 255, 255, 0.25); color: #ffffff; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; display: inline-block;">
+                      Live Sync
+                    </span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Hairline Divider -->
+          <!-- Card Body -->
           <tr>
-            <td style="border-top: 1px solid #f4f4f5; padding-top: 24px; padding-bottom: 0;"></td>
+            <td style="padding: 26px 26px 20px; background-color: #ffffff;">
+              
+              <!-- Hero Section: Temperature & Icon -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="left" valign="middle">
+                    <div style="font-size: 56px; font-weight: 800; color: #0d6efd; line-height: 1; letter-spacing: -2px;">
+                      {round(temp)}<span style="font-size: 32px; font-weight: 500; color: #6c757d; vertical-align: top;">°C</span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                      <!-- Bootstrap Badges -->
+                      <span style="background-color: #0dcaf0; color: #000000; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 20px; display: inline-block; text-transform: uppercase; letter-spacing: 0.3px;">
+                        {condition}
+                      </span>
+                      <span style="background-color: #f8f9fa; color: #495057; font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 20px; border: 1px solid #dee2e6; display: inline-block; margin-left: 6px;">
+                        Feels like {round(apparent_temp)}°C
+                      </span>
+                    </div>
+                  </td>
+                  <td align="right" valign="middle" width="90">
+                    <div style="font-size: 54px; line-height: 1;">
+                      {emoji}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Bootstrap Alert Banner -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 22px;">
+                <tr>
+                  <td style="background-color: {insight_bg}; border: 1px solid {insight_border}; border-radius: 8px; padding: 12px 16px; color: {insight_text}; font-size: 13px; line-height: 1.5;">
+                    💡 <strong>Observation:</strong> {insight}
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Bootstrap Metric Cards Grid (2x2) -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px;">
+                <tr>
+                  <!-- Metric 1: Humidity (Bootstrap Info Tint) -->
+                  <td width="48%" style="background-color: #f0f9ff; border: 1px solid #b6d4fe; border-radius: 10px; padding: 14px 16px; text-align: left; vertical-align: top;">
+                    <div style="color: #055160; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                      💧 Humidity
+                    </div>
+                    <div style="color: #084298; font-size: 24px; font-weight: 800; margin: 4px 0 6px;">
+                      {humidity}<span style="font-size: 14px; font-weight: 600; color: #6c757d;">%</span>
+                    </div>
+                    <!-- Bootstrap Progress Bar -->
+                    <div style="background-color: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;">
+                      <div style="background-color: #0dcaf0; width: {humidity}%; height: 6px; border-radius: 3px;"></div>
+                    </div>
+                  </td>
+
+                  <!-- Spacer -->
+                  <td width="4%"></td>
+
+                  <!-- Metric 2: Wind Speed (Bootstrap Success Tint) -->
+                  <td width="48%" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 16px; text-align: left; vertical-align: top;">
+                    <div style="color: #14532d; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                      💨 Wind Speed
+                    </div>
+                    <div style="color: #198754; font-size: 24px; font-weight: 800; margin: 4px 0 6px;">
+                      {wind_speed} <span style="font-size: 12px; font-weight: 600; color: #6c757d;">km/h</span>
+                    </div>
+                    <!-- Bootstrap Progress Bar -->
+                    <div style="background-color: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;">
+                      <div style="background-color: #198754; width: {min(100, int(wind_speed * 2.5))}%; height: 6px; border-radius: 3px;"></div>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr><td height="12" colspan="3"></td></tr>
+
+                <tr>
+                  <!-- Metric 3: Precipitation (Bootstrap Primary Tint) -->
+                  <td width="48%" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px; text-align: left; vertical-align: top;">
+                    <div style="color: #1e40af; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                      🌧️ Precipitation
+                    </div>
+                    <div style="color: #0d6efd; font-size: 24px; font-weight: 800; margin: 4px 0 6px;">
+                      {precipitation} <span style="font-size: 12px; font-weight: 600; color: #6c757d;">mm</span>
+                    </div>
+                    <span style="background-color: #dbeafe; color: #1e40af; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; display: inline-block;">
+                      {"Dry / Clear" if precipitation == 0 else "Active Rain"}
+                    </span>
+                  </td>
+
+                  <!-- Spacer -->
+                  <td width="4%"></td>
+
+                  <!-- Metric 4: Real Feel (Bootstrap Warning Tint) -->
+                  <td width="48%" style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 16px; text-align: left; vertical-align: top;">
+                    <div style="color: #92400e; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                      🌡️ Real Feel
+                    </div>
+                    <div style="color: #b45309; font-size: 24px; font-weight: 800; margin: 4px 0 6px;">
+                      {apparent_temp}<span style="font-size: 14px; font-weight: 600; color: #6c757d;">°C</span>
+                    </div>
+                    <span style="background-color: #fef3c7; color: #92400e; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; display: inline-block;">
+                      Delta {delta_str}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Interactive Bootstrap Buttons Section -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 24px;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="padding: 0 4px;">
+                          <a href="https://open-meteo.com/en/docs#latitude=50.8503&longitude=4.3517" target="_blank" style="display: inline-block; background-color: #0d6efd; border: 1px solid #0d6efd; color: #ffffff; text-decoration: none; padding: 9px 18px; font-weight: 600; font-size: 13px; border-radius: 6px;">
+                            📊 Live Radar
+                          </a>
+                        </td>
+                        <td style="padding: 0 4px;">
+                          <a href="https://www.google.com/search?q=weather+brussels" target="_blank" style="display: inline-block; background-color: #ffffff; border: 1px solid #0d6efd; color: #0d6efd; text-decoration: none; padding: 9px 18px; font-weight: 600; font-size: 13px; border-radius: 6px;">
+                            🌐 7-Day Forecast &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
           </tr>
 
-          <!-- Minimal Footer -->
+          <!-- Card Footer (Bootstrap Light) -->
           <tr>
-            <td style="text-align: left; padding-top: 12px;">
-              <div style="font-size: 11px; color: #a1a1aa; font-weight: 400;">
-                {timestamp} &bull; Open-Meteo
+            <td style="background-color: #f8f9fa; border-top: 1px solid #dee2e6; padding: 16px 26px; text-align: center;">
+              <div style="font-size: 11px; color: #6c757d;">
+                Generated on {timestamp} &bull; Powered by Open-Meteo &amp; Bootstrap
               </div>
             </td>
           </tr>
 
         </table>
+
       </td>
     </tr>
   </table>
@@ -299,9 +410,9 @@ def main():
     print(f"  Wind Speed:    {weather['wind_speed_10m']} km/h")
     print()
 
-    # Step 3: Build email content (both minimal HTML and plain text)
+    # Step 3: Build email content (both Bootstrap HTML and plain text)
     plain_body, html_body, condition = build_email_body(weather)
-    subject = f"{LOCATION_NAME} — {round(weather['temperature_2m'])}° {condition}"
+    subject = f"🌤️ {LOCATION_NAME} Weather: {round(weather['temperature_2m'])}°C {condition}"
 
     # Step 4: Send email
     try:
@@ -311,7 +422,7 @@ def main():
         return
 
     # Step 5: Success message
-    print("Minimalist weather email sent successfully!")
+    print("Bootstrap-styled weather email sent successfully!")
 
 
 if __name__ == "__main__":
